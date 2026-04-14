@@ -1,21 +1,28 @@
-# Claude Code Observability Stack
+# AI Coding Agent Observability Stack
 
 [![GitHub](https://img.shields.io/badge/GitHub-ColeMurray%2Fclaude--code--otel-blue?logo=github)](https://github.com/ColeMurray/claude-code-otel)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](docker-compose.yml)
 
-A comprehensive observability solution for monitoring Claude Code usage, performance, and costs. This setup implements the recommendations from the [Claude Code Observability Documentation](CLAUDE_OBSERVABILITY.md) to provide deep insights into AI-assisted development workflows.
+A comprehensive observability solution for monitoring AI coding agent usage, performance, and costs. Supports both **Claude Code** and **Codex CLI** out of the box, with separate dashboards tailored to each tool's telemetry schema.
+
+## 🤖 Supported Agents
+
+| Agent | Metrics | Log Events | Cost Tracking | Dashboard |
+|-------|---------|------------|---------------|-----------|
+| **Claude Code** | ✅ Native (Prometheus) | ✅ Native (Loki) | ✅ Native USD | [Claude Code Observability](CLAUDE_OBSERVABILITY.md) |
+| **Codex CLI** | ❌ Logs only | ✅ Native (Loki) | ⚠️ Estimated from tokens | [Codex Observability](CODEX_OBSERVABILITY.md) |
 
 ## 📸 Dashboard Screenshots
 
 ### 💰 Cost & Usage Analysis
-Track spending across different Claude models with detailed breakdowns of costs, API requests, and token usage patterns.
+Track spending across different models with detailed breakdowns of costs, API requests, and token usage patterns.
 
 <img src="docs/images/cost-usage-analytics.png" alt="Cost & Usage Analysis Dashboard" width="800">
 
 *Features: Model cost comparison, API request tracking, token usage breakdown by type*
 
-### 📊 User Activity & Productivity 
+### 📊 User Activity & Productivity
 Monitor development productivity with comprehensive session analytics, tool usage patterns, and code change metrics.
 
 <img src="docs/images/user-activity.png" alt="User Activity & Productivity Dashboard" width="800">
@@ -26,37 +33,31 @@ Monitor development productivity with comprehensive session analytics, tool usag
 
 ### 📊 **Comprehensive Monitoring**
 - **Cost Analysis**: Track usage costs by model, user, and time periods
-- **User Analytics**: Daily/Weekly/Monthly Active Users (DAU/WAU/MAU)
-- **Tool Usage**: Monitor which Claude Code tools are used most frequently
-- **Performance Metrics**: API latency, success rates, and bottleneck identification
-- **Productivity Insights**: Lines of code changes, commits, and pull requests
-
-### 📊 **Enhanced Analytics**
-- **API Request Tracking**: Monitor actual request counts by model version
-- **Token Efficiency**: Track cost-per-token across different models
-- **Session Analytics**: Comprehensive session and productivity tracking
+- **Token Usage**: Input, output, cached, and reasoning token breakdowns
+- **Performance Metrics**: API latency and error rate tracking
+- **Session Analytics**: Activity by conversation and user
 - **Real-time Monitoring**: Live dashboards with 30-second refresh rates
 
-### 📈 **Rich Dashboards**
-- **Executive Overview**: High-level KPIs and trends
-- **Cost Management**: Detailed cost breakdowns and projections
-- **Tool Performance**: Success rates and execution times
-- **User Activity**: Productivity and engagement metrics
-- **Error Analysis**: Comprehensive error tracking and investigation
+### 🤖 **Multi-Agent Support**
+- **Claude Code**: Full metrics + events with native cost and tool usage data
+- **Codex CLI**: Log-event-based telemetry with estimated cost from token counts
+- Both agents share the same collector, Prometheus, Loki, and Grafana stack
 
 ## 🏗️ Architecture
 
 ```
-Claude Code → OpenTelemetry Collector → Prometheus (metrics) + Loki (events/logs)
-                                     ↓
-                              Grafana (visualization & analysis)
+Claude Code  ──┐
+               ├──▶ OpenTelemetry Collector ──▶ Prometheus (metrics)
+Codex CLI    ──┘                            └──▶ Loki (log events)
+                                                      │
+                                               Grafana (visualization)
 ```
 
 ### Components
 
 | Service | Purpose | Port | UI |
-|---------|---------|------|----| 
-| **OpenTelemetry Collector** | Metrics/logs ingestion | 4317 (gRPC), 4318 (HTTP) | - |
+|---------|---------|------|----|
+| **OpenTelemetry Collector** | Metrics/logs/traces ingestion | 4317 (gRPC), 4318 (HTTP) | - |
 | **Prometheus** | Metrics storage & querying | 9090 | http://localhost:9090 |
 | **Loki** | Log aggregation & storage | 3100 | - |
 | **Grafana** | Dashboards & visualization | 3000 | http://localhost:3000 |
@@ -65,242 +66,201 @@ Claude Code → OpenTelemetry Collector → Prometheus (metrics) + Loki (events/
 
 ### 1. Start the Stack
 ```bash
-# Start all services
 make up
-
-# Check status
 make status
 ```
 
-### 2. Configure Claude Code
-```bash
-# Enable telemetry
-export CLAUDE_CODE_ENABLE_TELEMETRY=1
+### 2. Configure Your Agent
 
-# Configure exporters
+#### Claude Code
+Add these to your `~/.zshrc` (or equivalent):
+
+```bash
+export CLAUDE_CODE_ENABLE_TELEMETRY=1
 export OTEL_METRICS_EXPORTER=otlp
 export OTEL_LOGS_EXPORTER=otlp
 export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 
-# For debugging (faster export intervals)
+# Optional: faster intervals for local debugging
 export OTEL_METRIC_EXPORT_INTERVAL=10000
 export OTEL_LOGS_EXPORT_INTERVAL=5000
-
-# Run Claude Code
-claude
 ```
+
+Then run `claude` normally. See `make setup-claude` for a reminder.
+
+#### Codex CLI
+Add this to `~/.codex/config.toml`:
+
+```toml
+[otel]
+environment = "dev"
+
+[otel.exporter.otlp-grpc]
+endpoint = "http://localhost:4317"
+```
+
+Then run `codex` normally. See `make setup-codex` for a reminder.
 
 ### 3. Access Dashboards
 - **Grafana**: http://localhost:3000 (admin/admin)
+  - [Claude Code Observability](http://localhost:3000/d/claude-code-obs)
+  - [Codex CLI Observability](http://localhost:3000/d/codex-cli-obs)
 - **Prometheus**: http://localhost:9090
 
-> 🖼️ **Visual Guide**: Check out the [Dashboard Screenshots](#-dashboard-screenshots) to see what your dashboards will look like!
+## 📊 Available Telemetry
 
-## 📊 Available Metrics
+### Claude Code
 
-Based on the [Claude Code Observability Documentation](CLAUDE_OBSERVABILITY.md), this stack monitors:
+Full reference: [CLAUDE_OBSERVABILITY.md](CLAUDE_OBSERVABILITY.md)
 
-### Core Metrics
-- `claude_code.session.count` - CLI sessions started
-- `claude_code.lines_of_code.count` - Lines of code modified (added/removed)
-- `claude_code.pull_request.count` - Pull requests created
-- `claude_code.commit.count` - Git commits created
-- `claude_code.cost.usage` - Cost of sessions by model
-- `claude_code.token.usage` - Token usage (input/output/cache/creation)
-- `claude_code.code_edit_tool.decision` - Tool permission decisions
+**Metrics (Prometheus):**
+- `claude_code.session.count` — CLI sessions started
+- `claude_code.cost.usage` — Cost per session by model (USD)
+- `claude_code.token.usage` — Tokens used (input/output/cacheRead/cacheCreation)
+- `claude_code.lines_of_code.count` — Lines added/removed
+- `claude_code.commit.count` / `claude_code.pull_request.count` — Dev activity
+- `claude_code.code_edit_tool.decision` — Tool permission decisions
 
-### Event Data
-- `claude_code.user_prompt` - User prompt submissions
-- `claude_code.tool_result` - Tool execution results and timings
-- `claude_code.api_request` - API requests with duration and tokens
-- `claude_code.api_error` - API errors with status codes
-- `claude_code.tool_decision` - Tool permission decisions
+**Log Events (Loki, `service_name="claude-code"`):**
+- `claude_code.user_prompt` — Prompt submissions
+- `claude_code.tool_result` — Tool execution with success/failure, duration
+- `claude_code.api_request` — API calls with token counts and cost
+- `claude_code.api_error` — API errors with status codes
+- `claude_code.tool_decision` — Tool permission decisions
 
-## 🔍 Usage Analysis
+### Codex CLI
 
-### Real-time Dashboard Analysis
+Full reference: [CODEX_OBSERVABILITY.md](CODEX_OBSERVABILITY.md)
 
-Access comprehensive analytics through the Grafana dashboard at http://localhost:3000:
+**Log Events (Loki, `service_name="codex_cli_rs"`):**
+- `codex.conversation_starts` — Session started
+- `codex.api_request` — HTTP API calls with duration and status
+- `codex.websocket_request` / `codex.websocket_event` — WebSocket activity
+- `codex.sse_event` — Server-Sent Events with token counts on `response.completed`
 
-- **Cost Analysis**: Real-time cost tracking with model breakdowns
-- **Request Monitoring**: API request counts and patterns by model
-- **Token Efficiency**: Track token usage and cost-per-token metrics
-- **Tool Performance**: Success rates and execution time analysis
-- **Session Analytics**: User activity and productivity insights
+**Token attributes on `response.completed` events:**
+- `input_token_count`, `output_token_count`, `cached_token_count`, `reasoning_token_count`
 
-### Key Metrics Available
-- Total and per-model costs with trending
-- API request counts independent of cost variations
-- Token usage breakdown (input/output/cache/creation)
-- Tool usage patterns and success rates
-- Session activity and code productivity metrics
-
-## 📊 Key Dashboard Features
-
-> 💡 **See [Dashboard Screenshots](#-dashboard-screenshots) above for visual examples**
-
-### 💰 Cost & Usage Analysis
-- **Cost by Model**: Track spending across different Claude models
-- **API Request Tracking**: Monitor actual request counts by model version  
-- **Token Usage Breakdown**: Detailed analysis by token type (input/output/cache)
-
-### 🔧 Tool Performance
-- **Usage Patterns**: Most frequently used Claude Code tools
-- **Success Rates**: Tool execution success percentages
-- **Performance Metrics**: Average execution times and bottleneck identification
-
-### ⚡ Real-time Monitoring
-- **Live Metrics**: 30-second refresh rate for current activity
-- **Session Tracking**: Active sessions and productivity metrics
-- **Error Analysis**: API errors and troubleshooting information
+> **Note:** Codex CLI does not emit Prometheus metrics. All Codex data is queried via Loki.
 
 ## 📋 Dashboard Sections
 
-The Grafana dashboard is organized into sections reflecting the observability documentation recommendations:
+Both dashboards follow the same layout for easy comparison:
 
 ### 📊 Overview
-- Active sessions, cost, token usage, lines of code changed
+Key stats for the last hour: sessions, cost, token usage, API requests.
 
-### 💰 Cost & Usage Analysis  
-- Cost trends by model, token usage breakdown
-- **NEW**: API request count tracking by model version
-- Implements cost monitoring recommendations
+### 💰 Cost & Usage Analysis
+Cost trends by model, token usage rate by type, API requests by model.
 
-### 🔧 Tool Usage & Performance
-- Tool frequency and success rates
-- Performance bottleneck identification
+> **Codex cost note:** Codex does not emit native cost data. The dashboard estimates cost by multiplying token counts from `response.completed` events by GPT-5.4 standard pricing ($2.50/$0.25/$15.00 per 1M input/cached/output tokens). If you use a ChatGPT subscription rather than direct API billing, these figures represent equivalent API cost rather than your actual spend. See [CODEX_OBSERVABILITY.md](CODEX_OBSERVABILITY.md) for full details.
+
+### 🔧 Tool Usage / Event Activity
+- **Claude Code**: Per-tool usage rate, cumulative usage, success rates
+- **Codex**: Event rate by type and kind (websocket, SSE, etc.)
 
 ### ⚡ Performance & Errors
-- API latency by model, error rate tracking
-- Performance monitoring as recommended
+API request duration by model, API error rate by HTTP status code.
 
-### 📝 User Activity & Productivity
-- Code changes, commits, pull requests
-- Productivity measurement insights
+### 👤 Session Details / User Activity
+- **Claude Code**: Code changes rate, commits and PRs
+- **Codex**: Activity by conversation, token usage by user
 
 ### 🔍 Event Logs
-- Real-time tool execution events and API errors
-- Structured log analysis for troubleshooting
-
-## 🔧 Advanced Configuration
-
-### Environment Variables
-
-Key configuration options (see [CLAUDE_OBSERVABILITY.md](CLAUDE_OBSERVABILITY.md) for complete reference):
-
-```bash
-# Core telemetry
-CLAUDE_CODE_ENABLE_TELEMETRY=1
-
-# Exporter configuration
-OTEL_METRICS_EXPORTER=otlp,prometheus    # Multiple exporters
-OTEL_LOGS_EXPORTER=otlp
-
-# Protocol and endpoints
-OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer token"
-
-# Export intervals
-OTEL_METRIC_EXPORT_INTERVAL=60000        # 1 minute (production)
-OTEL_LOGS_EXPORT_INTERVAL=5000           # 5 seconds
-
-# Privacy controls
-OTEL_LOG_USER_PROMPTS=1                   # Enable prompt content logging
-
-# Cardinality control
-OTEL_METRICS_INCLUDE_SESSION_ID=true
-OTEL_METRICS_INCLUDE_VERSION=false
-OTEL_METRICS_INCLUDE_ACCOUNT_UUID=true
-```
-
-### Collector Configuration
-
-The OpenTelemetry collector is configured with:
-- **Processors**: Resource enrichment and event filtering
-- **Multiple Pipelines**: Separate routing for metrics and different event types
-- **Metric Relabeling**: Cardinality control for better performance
-
-### Backend Considerations
-
-Following the documentation recommendations:
-
-- **Metrics Backend**: Prometheus (time series) + optional columnar stores
-- **Events Backend**: Loki (log aggregation) with JSON parsing
-- **Cardinality Management**: Configurable attribute inclusion
-- **Retention**: Configure based on your analysis needs
+Formatted real-time log panels for API requests and errors.
 
 ## 🛠️ Management Commands
 
 ```bash
 # Stack management
-make up                    # Start all services
-make down                  # Stop all services  
-make restart              # Restart services
-make clean                # Clean up containers and volumes
+make up                  # Start all services
+make down                # Stop all services
+make restart             # Restart services
+make clean               # Clean up containers and volumes
 
 # Monitoring
-make logs                 # View all logs
-make logs-collector       # View collector logs only
-make status              # Show service status
+make logs                # View all service logs
+make logs-collector      # View collector logs
+make logs-grafana        # View Grafana logs
+make status              # Show service status and URLs
+
+# Agent setup
+make setup-claude        # Show Claude Code env var setup instructions
+make setup-codex         # Show Codex CLI config.toml setup instructions
+make run-claude          # Launch Claude Code with telemetry configured
+make run-codex           # Launch Codex CLI with telemetry configured
 
 # Validation
-make validate-config     # Validate all configs
-make setup-claude       # Show Claude Code setup instructions
+make validate-config     # Validate docker-compose and collector config
+```
+
+## 🔧 Advanced Configuration
+
+### Collector
+
+The OpenTelemetry Collector (`collector-config.yaml`) accepts any OTLP data on ports 4317 (gRPC) and 4318 (HTTP). Both Claude Code and Codex telemetry flow through the same collector with separate pipelines for metrics, logs, and traces.
+
+### Adding More Agents
+
+Any OTLP-compatible agent can send data to this stack. Point it at `localhost:4317` (gRPC) or `localhost:4318` (HTTP). Prometheus metrics appear automatically; logs appear in Loki queryable by `service_name`.
+
+### Alternative Stack
+
+A lightweight single-container alternative using Grafana's LGTM image is available:
+
+```bash
+docker compose -f docker-compose-lgtm.yml up -d
 ```
 
 ## 🎯 Use Cases
 
 ### For Engineering Teams
-- **Cost Management**: Track AI assistance costs by team/project
-- **Productivity Measurement**: Quantify development velocity improvements
-- **Tool Adoption**: Understand which Claude Code features drive value
-- **Performance Optimization**: Identify and resolve usage bottlenecks
+- **Cost Management**: Track AI assistance costs by model, user, and time period
+- **Tool Adoption**: Understand which agent features drive value
+- **Performance Optimization**: Identify API latency bottlenecks
 
 ### For Platform Teams
-- **Capacity Planning**: Predict infrastructure needs based on usage growth
-- **SLA Monitoring**: Track API performance and availability
-- **Security**: Monitor unusual usage patterns
-- **Resource Optimization**: Optimize token usage and reduce costs
+- **Capacity Planning**: Predict infrastructure needs based on usage trends
+- **Multi-Agent Visibility**: Unified view across Claude Code and Codex CLI
+- **SLA Monitoring**: Track API performance and error rates
 
 ### For Management
 - **ROI Analysis**: Measure productivity gains from AI assistance
 - **Usage Insights**: Understand adoption patterns across teams
-- **Cost Control**: Monitor and optimize AI assistance spending
-- **Strategic Planning**: Data-driven decisions on AI tool investments
+- **Cost Control**: Monitor and optimize AI tool spending
 
 ## 🔒 Security & Privacy
 
-- **User Privacy**: Prompt content logging is disabled by default
-- **Data Isolation**: All data stays within your infrastructure
-- **Access Control**: Configure Grafana authentication as needed
-- **Audit Trail**: Complete logging of all tool usage and decisions
+- **User Privacy**: Prompt content logging is disabled by default in both agents
+- **Data Isolation**: All telemetry stays within your infrastructure
+- **PII in telemetry**: Both agents include `user_email` in events — consider this when configuring shared backends
+- **Access Control**: Configure Grafana authentication as needed for team environments
 
 ## 📚 Resources
 
-- [Claude Code Observability Documentation](CLAUDE_OBSERVABILITY.md) - Complete reference
-- [OpenTelemetry Documentation](https://opentelemetry.io/docs/) - OTel specification
-- [Prometheus Documentation](https://prometheus.io/docs/) - Metrics and alerting
-- [Grafana Documentation](https://grafana.com/docs/) - Dashboards and visualization
-- [Loki Documentation](https://grafana.com/docs/loki/) - Log aggregation
+- [Claude Code Observability Documentation](CLAUDE_OBSERVABILITY.md)
+- [Codex CLI Observability Documentation](CODEX_OBSERVABILITY.md)
+- [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
+- [Prometheus Documentation](https://prometheus.io/docs/)
+- [Grafana Documentation](https://grafana.com/docs/)
+- [Loki Documentation](https://grafana.com/docs/loki/)
 
 ## 🤝 Contributing
 
-This observability stack implements the patterns and recommendations from the official Claude Code documentation. To contribute:
-
-1. Follow the metric naming conventions in the documentation
-2. Update dashboards to reflect new data sources and metrics
+1. Follow the metric/event naming conventions in the observability docs
+2. Update both dashboards and documentation for any new agent support
 3. Test configurations before submitting changes
-4. Ensure all sensitive information is excluded from commits
-5. Update documentation for any new features or configuration changes
+4. Ensure sensitive information is excluded from commits
+5. Add new agent support by: configuring `~/.yourAgent/config`, creating a `yourAgent-dashboard.json`, mounting it in `docker-compose.yml`, and adding Makefile targets
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
 - Built following the [Claude Code Observability Documentation](CLAUDE_OBSERVABILITY.md)
-- Uses OpenTelemetry standards for metrics and events
-- Implements industry best practices for observability stack architecture 
+- Codex CLI telemetry schema sourced from live telemetry inspection
+- Uses OpenTelemetry standards for metrics, logs, and traces
+- Implements industry best practices for observability stack architecture

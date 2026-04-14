@@ -31,7 +31,12 @@ service:
       processors: [resource]
       exporters: [prometheus, debug]
     
-    logs:    
+    logs:
       receivers: [otlp]
       processors: [resource]
-      exporters: [debug, otlphttp] 
+      exporters: [debug, otlphttp]
+
+    traces:
+      receivers: [otlp]
+      processors: [resource]
+      exporters: [debug]
