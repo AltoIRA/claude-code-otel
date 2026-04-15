@@ -10,9 +10,9 @@ services:
     volumes:
       - ./collector-config.yaml:/etc/otel/collector-config.yaml:ro
     ports:
-      - "4317:4317"      # OTLP gRPC in
-      - "4318:4318"      # OTLP HTTP  in
-      - "8889:8889"      # Prometheus scrape out
+      - "127.0.0.1:4317:4317"      # OTLP gRPC in — 🛑 Security Requirement - DO NOT REMOVE
+      - "127.0.0.1:4318:4318"      # OTLP HTTP  in — 🛑 Security Requirement - DO NOT REMOVE
+      - "127.0.0.1:8889:8889"      # Prometheus scrape out — 🛑 Security Requirement - DO NOT REMOVE
     restart: unless-stopped
     networks:
       - otel-network
@@ -24,7 +24,7 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"      # 🛑 Security Requirement - DO NOT REMOVE
     restart: unless-stopped
     depends_on: [otel-collector]
     networks:
@@ -36,7 +36,7 @@ services:
     volumes:
       - loki_data:/loki
     ports:
-      - "3100:3100"
+      - "127.0.0.1:3100:3100"      # 🛑 Security Requirement - DO NOT REMOVE
     command: -config.file=/etc/loki/local-config.yaml
     restart: unless-stopped
     networks:
@@ -56,7 +56,7 @@ services:
       - ./codex-cli-dashboard.json:/etc/grafana/dashboards/codex-cli-dashboard.json:ro
       - grafana_data:/var/lib/grafana
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"      # 🛑 Security Requirement - DO NOT REMOVE
     restart: unless-stopped
     depends_on: [prometheus, loki]
     networks:
