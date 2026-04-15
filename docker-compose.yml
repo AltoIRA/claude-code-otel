@@ -42,6 +42,19 @@ services:
     networks:
       - otel-network
 
+  tempo:
+    image: grafana/tempo:2.7.2
+    container_name: tempo
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "127.0.0.1:3200:3200"      # Tempo HTTP API — 🛑 Security Requirement - DO NOT REMOVE
+    restart: unless-stopped
+    networks:
+      - otel-network
+
   grafana:
     image: grafana/grafana-oss:latest
     container_name: grafana
@@ -58,11 +71,12 @@ services:
     ports:
       - "127.0.0.1:3000:3000"      # 🛑 Security Requirement - DO NOT REMOVE
     restart: unless-stopped
-    depends_on: [prometheus, loki]
+    depends_on: [prometheus, loki, tempo]
     networks:
       - otel-network
 
 volumes:
   prometheus_data:
   loki_data:
+  tempo_data:
   grafana_data:
