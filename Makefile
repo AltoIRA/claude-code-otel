@@ -1,9 +1,9 @@
-# Claude Code Observability Stack
-.PHONY: help up down logs restart clean validate-config
+# AI Coding Agent Observability Stack
+.PHONY: help up down logs restart clean validate-config run-claude setup-codex run-codex
 
 help: ## Show this help message
-	@echo "Claude Code Observability Stack"
-	@echo "================================"
+	@echo "AI Coding Agent Observability Stack"
+	@echo "===================================="
 	@echo ""
 	@echo "Available commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -90,6 +90,29 @@ setup-claude: ## Display Claude Code telemetry setup instructions
 	@echo "export OTEL_LOGS_EXPORT_INTERVAL=5000"
 	@echo ""
 	@echo "Then run: claude"
+
+run-claude: ## Launch Claude Code with telemetry pointed at the local stack
+	@./run-claude-with-telemetry.sh
+
+setup-codex: ## Display Codex CLI telemetry setup instructions
+	@echo "🤖 Codex CLI Telemetry Setup"
+	@echo "============================="
+	@echo ""
+	@echo "Add this to ~/.codex/config.toml:"
+	@echo ""
+	@echo "[otel]"
+	@echo 'environment = "dev"'
+	@echo ""
+	@echo "[otel.exporter.otlp_grpc]"
+	@echo 'endpoint = "http://localhost:4317"'
+	@echo ""
+	@echo "Then run: codex"
+	@echo ""
+	@echo "Note: Only interactive codex mode emits full OTEL telemetry."
+	@echo "      codex exec and codex mcp-server have limited/no telemetry support."
+
+run-codex: ## Launch Codex CLI with telemetry pointed at the local stack
+	@./run-codex-with-telemetry.sh
 
 demo-metrics: ## Generate demo metrics for testing
 	@echo "🎯 This would generate demo metrics if Claude Code was running"
