@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](docker-compose.yml)
 
-A comprehensive observability solution for monitoring AI coding agent usage, performance, and costs. Supports both **Claude Code** and **Codex CLI** out of the box, with separate dashboards tailored to each tool's telemetry schema.
+A comprehensive observability solution for monitoring AI coding agent usage, performance, and costs. Supports **Claude Code**, **Codex CLI**, and **Warp** out of the box, with separate dashboards tailored to each tool's telemetry schema.
 
 ## 🤖 Supported Agents
 
@@ -12,6 +12,7 @@ A comprehensive observability solution for monitoring AI coding agent usage, per
 |-------|---------|------------|---------------|-----------|
 | **Claude Code** | ✅ Native (Prometheus) | ✅ Native (Loki) | ✅ Native USD | [Claude Code Observability](CLAUDE_OBSERVABILITY.md) |
 | **Codex CLI** | ❌ Logs only | ✅ Native (Loki) | ⚠️ Estimated from tokens | [Codex Observability](CODEX_OBSERVABILITY.md) |
+| **Warp Enterprise** | ✅ Host exporter (Prometheus) | ✅ Local bridge (Loki) | ⚠️ Estimated from local credits | [Warp Enterprise Observability](WARP_OBSERVABILITY.md) |
 
 ## 📸 Dashboard Screenshots
 
@@ -41,16 +42,18 @@ Monitor development productivity with comprehensive session analytics, tool usag
 ### 🤖 **Multi-Agent Support**
 - **Claude Code**: Full metrics + events with native cost and tool usage data
 - **Codex CLI**: Log-event-based telemetry with estimated cost from token counts
-- Both agents share the same collector, Prometheus, Loki, and Grafana stack
+- **Warp Enterprise**: Local usage events plus local enterprise context from Warp state
+- All agents share the same collector, Prometheus, Loki, and Grafana stack
 
 ## 🏗️ Architecture
 
 ```
-Claude Code  ──┐
-               ├──▶ OpenTelemetry Collector ──▶ Prometheus (metrics)
-Codex CLI    ──┘                            └──▶ Loki (log events)
-                                                      │
-                                               Grafana (visualization)
+Claude Code     ──┐
+Codex CLI       ──┼──▶ OpenTelemetry Collector ──▶ Prometheus (metrics)
+Warp Usage Bridge──┤                            └──▶ Loki (log events)
+Warp Exporter   ───┘
+                                                         │
+                                                  Grafana (visualization)
 ```
 
 ### Components
@@ -102,10 +105,21 @@ endpoint = "http://localhost:4317"
 
 Then run `codex` normally. See `make setup-codex` for a reminder.
 
+#### Warp Enterprise
+Run `make setup-warp` for the required host-side bridge/exporter environment variables, then start:
+
+```bash
+make run-warp-usage-bridge
+make run-warp-enterprise-exporter
+```
+
+By default, the exporter reads Warp's local macOS state from `warp.sqlite` and `dev.warp.Warp-Stable.plist`. That base setup gives you real request, conversation, token, and tool metrics plus estimated spend using `WARP_ESTIMATED_CENTS_PER_CREDIT`, which currently defaults to a temporary `1.5` cents-per-credit guess until the actual Enterprise rate is known. It does not provide authoritative billed USD or purchased-credit tracking. See [WARP_OBSERVABILITY.md](WARP_OBSERVABILITY.md) for the exact data sources and limits.
+
 ### 3. Access Dashboards
 - **Grafana**: http://localhost:3000 (admin/admin)
   - [Claude Code Observability](http://localhost:3000/d/claude-code-obs)
   - [Codex CLI Observability](http://localhost:3000/d/codex-cli-obs)
+  - [Warp Enterprise Observability](http://localhost:3000/d/warp-enterprise-obs)
 - **Prometheus**: http://localhost:9090
 
 ## 📊 Available Telemetry
@@ -133,20 +147,42 @@ Full reference: [CLAUDE_OBSERVABILITY.md](CLAUDE_OBSERVABILITY.md)
 
 Full reference: [CODEX_OBSERVABILITY.md](CODEX_OBSERVABILITY.md)
 
-**Log Events (Loki, `service_name="codex_cli_rs"`):**
+**Log Events (Loki, `service_name=~"codex_cli_rs|codex-app-server"`):**
 - `codex.conversation_starts` — Session started
 - `codex.api_request` — HTTP API calls with duration and status
 - `codex.websocket_request` / `codex.websocket_event` — WebSocket activity
 - `codex.sse_event` — Server-Sent Events with token counts on `response.completed`
+
+Current Codex builds emit `service_name="codex-app-server"`. Older releases emitted `service_name="codex_cli_rs"`, and the dashboard now matches both.
 
 **Token attributes on `response.completed` events:**
 - `input_token_count`, `output_token_count`, `cached_token_count`, `reasoning_token_count`
 
 > **Note:** Codex CLI does not emit Prometheus metrics. All Codex data is queried via Loki.
 
+### Warp Enterprise
+
+Full reference: [WARP_OBSERVABILITY.md](WARP_OBSERVABILITY.md)
+
+**Metrics (Prometheus via host exporter):**
+- `warp_workspace_*` — Workspace request allocation, refresh-window state, and cached enterprise billing controls
+- `warp_member_*` — Current-user member request usage and request limits from local Warp state
+- `warp_model_*` — Workspace model credit/request multipliers
+- `warp_conversation_*` — Conversation credits, token totals, and tool usage totals
+- `warp_estimated_*` — Estimated spend inputs and per-model estimated spend totals
+- `warp_exporter_*` — Exporter health and last successful snapshot timestamp
+
+**Log Events (Loki, `service_name="warp"`):**
+- `AgentMode.CreatedAIBlock` — Warp AI response blocks
+- `AIAutonomy.AutoexecutedRequestedCommand` — Auto-run terminal actions
+- `AgentMode.Code.SuggestedEditReceived` / `AgentMode.Code.SuggestedEditResolved` — Suggested edit lifecycle
+- `Block Creation` with `is_in_agent_view=true` — Agent-view block creation events
+
 ## 📋 Dashboard Sections
 
-Both dashboards follow the same layout for easy comparison:
+All dashboards follow the same layout for easy comparison:
+
+Warp now mirrors the Codex dashboard layout closely. Its cost and token panels filter local snapshot data by conversation update time using the temporary `1.5` cents-per-credit default unless overridden, while its final enterprise row shows the cached workspace context available from local Warp state.
 
 ### 📊 Overview
 Key stats for the last hour: sessions, cost, token usage, API requests.
@@ -166,6 +202,7 @@ API request duration by model, API error rate by HTTP status code.
 ### 👤 Session Details / User Activity
 - **Claude Code**: Code changes rate, commits and PRs
 - **Codex**: Activity by conversation, token usage by user
+- **Warp**: Conversation credits/tokens, estimated spend, and cached enterprise context
 
 ### 🔍 Event Logs
 Formatted real-time log panels for API requests and errors.
@@ -188,11 +225,16 @@ make status              # Show service status and URLs
 # Agent setup
 make setup-claude        # Show Claude Code env var setup instructions
 make setup-codex         # Show Codex CLI config.toml setup instructions
+make setup-warp          # Show Warp Enterprise bridge/exporter setup instructions
 make run-claude          # Launch Claude Code with telemetry configured
 make run-codex           # Launch Codex CLI with telemetry configured
+make run-warp-usage-bridge        # Tail warp_network.log into normalized NDJSON
+make run-warp-enterprise-exporter # Serve Warp enterprise Prometheus metrics from local state
+make run-warp-bridges             # Run both Warp host-side processes together
 
 # Validation
 make validate-config     # Validate docker-compose and collector config
+make test                # Run unit tests
 ```
 
 ## 🔧 Advanced Configuration
@@ -201,9 +243,13 @@ make validate-config     # Validate docker-compose and collector config
 
 The OpenTelemetry Collector (`collector-config.yaml`) accepts any OTLP data on ports 4317 (gRPC) and 4318 (HTTP). Both Claude Code and Codex telemetry flow through the same collector with separate pipelines for metrics, logs, and traces.
 
+Warp uses the same stack, but with a host-side usage bridge that writes normalized NDJSON for the collector's `filelog` receiver and a host-side exporter that serves Prometheus metrics directly.
+
 ### Adding More Agents
 
 Any OTLP-compatible agent can send data to this stack. Point it at `localhost:4317` (gRPC) or `localhost:4318` (HTTP). Prometheus metrics appear automatically; logs appear in Loki queryable by `service_name`.
+
+Agents without native OTLP support can still fit this repo's shape by adding a small host-side bridge/exporter pair, which is how Warp Enterprise support is implemented here.
 
 ### Alternative Stack
 
@@ -222,7 +268,7 @@ docker compose -f docker-compose-lgtm.yml up -d
 
 ### For Platform Teams
 - **Capacity Planning**: Predict infrastructure needs based on usage trends
-- **Multi-Agent Visibility**: Unified view across Claude Code and Codex CLI
+- **Multi-Agent Visibility**: Unified view across Claude Code, Codex CLI, and Warp
 - **SLA Monitoring**: Track API performance and error rates
 
 ### For Management
@@ -232,7 +278,7 @@ docker compose -f docker-compose-lgtm.yml up -d
 
 ## 🔒 Security & Privacy
 
-- **User Privacy**: Prompt content logging is disabled by default in both agents
+- **User Privacy**: Prompt content logging is disabled by default in all supported agents
 - **Data Isolation**: All telemetry stays within your infrastructure
 - **PII in telemetry**: Both agents include `user_email` in events — consider this when configuring shared backends
 - **Access Control**: Configure Grafana authentication as needed for team environments
@@ -241,6 +287,7 @@ docker compose -f docker-compose-lgtm.yml up -d
 
 - [Claude Code Observability Documentation](CLAUDE_OBSERVABILITY.md)
 - [Codex CLI Observability Documentation](CODEX_OBSERVABILITY.md)
+- [Warp Enterprise Observability Documentation](WARP_OBSERVABILITY.md)
 - [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
 - [Prometheus Documentation](https://prometheus.io/docs/)
 - [Grafana Documentation](https://grafana.com/docs/)
@@ -249,7 +296,7 @@ docker compose -f docker-compose-lgtm.yml up -d
 ## 🤝 Contributing
 
 1. Follow the metric/event naming conventions in the observability docs
-2. Update both dashboards and documentation for any new agent support
+2. Update the relevant dashboards and documentation for any new agent support
 3. Test configurations before submitting changes
 4. Ensure sensitive information is excluded from commits
 5. Add new agent support by: configuring `~/.yourAgent/config`, creating a `yourAgent-dashboard.json`, mounting it in `docker-compose.yml`, and adding Makefile targets

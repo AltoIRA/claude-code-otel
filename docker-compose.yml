@@ -9,6 +9,7 @@ services:
     command: ["--config=/etc/otel/collector-config.yaml"]
     volumes:
       - ./collector-config.yaml:/etc/otel/collector-config.yaml:ro
+      - ./tmp:/var/log/warp:ro
     ports:
       - "127.0.0.1:4317:4317"      # OTLP gRPC in — 🛑 Security Requirement - DO NOT REMOVE
       - "127.0.0.1:4318:4318"      # OTLP HTTP  in — 🛑 Security Requirement - DO NOT REMOVE
@@ -67,6 +68,7 @@ services:
       - ./grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
       - ./claude-code-dashboard.json:/etc/grafana/dashboards/claude-code-dashboard.json:ro
       - ./codex-cli-dashboard.json:/etc/grafana/dashboards/codex-cli-dashboard.json:ro
+      - ./warp-dashboard.json:/etc/grafana/dashboards/warp-dashboard.json:ro
       - grafana_data:/var/lib/grafana
     ports:
       - "127.0.0.1:3000:3000"      # 🛑 Security Requirement - DO NOT REMOVE
