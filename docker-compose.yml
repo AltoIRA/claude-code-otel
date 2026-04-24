@@ -3,12 +3,56 @@ networks:
     driver: bridge
 
 services:
+  warp-bridges:
+    build:
+      context: .
+      dockerfile: Dockerfile.warp-bridges
+    container_name: warp-bridges
+    profiles: ["warp"]
+    environment:
+      - WARP_NETWORK_LOG_PATH=/warp-network/warp_network.log
+      - WARP_USAGE_OUTPUT_PATH=/var/log/warp/warp-usage-events.ndjson
+      - WARP_USAGE_STATE_PATH=/var/log/warp/warp-usage-bridge-state.json
+      - WARP_SQLITE_PATH=/warp-state/warp.sqlite
+      - WARP_PREFERENCES_PLIST_PATH=/warp-preferences/dev.warp.Warp-Stable.plist
+      - WARP_EXPORTER_HOST=0.0.0.0
+      - WARP_EXPORTER_PORT=9498
+      - WARP_CONVERSATION_LIMIT=${WARP_CONVERSATION_LIMIT:-25}
+      - WARP_ENTERPRISE_SNAPSHOT_TIMEOUT=${WARP_ENTERPRISE_SNAPSHOT_TIMEOUT:-10}
+      - WARP_ESTIMATED_CENTS_PER_CREDIT=${WARP_ESTIMATED_CENTS_PER_CREDIT:-1.5}
+    volumes:
+      - ./tmp:/var/log/warp
+      - type: bind
+        source: ${WARP_NETWORK_LOG_DIR:-${HOME}/Library/Application Support/dev.warp.Warp-Stable}
+        target: /warp-network
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WARP_SQLITE_DIR:-${HOME}/Library/Group Containers/2BBY89MBSN.dev.warp/Library/Application Support/dev.warp.Warp-Stable}
+        target: /warp-state
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WARP_PREFERENCES_PLIST_PATH:-${HOME}/Library/Preferences/dev.warp.Warp-Stable.plist}
+        target: /warp-preferences/dev.warp.Warp-Stable.plist
+        read_only: true
+        bind:
+          create_host_path: false
+    expose:
+      - "9498"
+    restart: unless-stopped
+    networks:
+      - otel-network
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest   # ≈ 50 MB
     container_name: otel-collector
     command: ["--config=/etc/otel/collector-config.yaml"]
     volumes:
       - ./collector-config.yaml:/etc/otel/collector-config.yaml:ro
+      - ./tmp:/var/log/warp:ro
     ports:
       - "127.0.0.1:4317:4317"      # OTLP gRPC in — 🛑 Security Requirement - DO NOT REMOVE
       - "127.0.0.1:4318:4318"      # OTLP HTTP  in — 🛑 Security Requirement - DO NOT REMOVE
@@ -67,6 +111,8 @@ services:
       - ./grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
       - ./claude-code-dashboard.json:/etc/grafana/dashboards/claude-code-dashboard.json:ro
       - ./codex-cli-dashboard.json:/etc/grafana/dashboards/codex-cli-dashboard.json:ro
+      - ./warp-dashboard.json:/etc/grafana/dashboards/warp-dashboard.json:ro
+      - ./agent-overview-dashboard.json:/etc/grafana/dashboards/agent-overview-dashboard.json:ro
       - grafana_data:/var/lib/grafana
     ports:
       - "127.0.0.1:3000:3000"      # 🛑 Security Requirement - DO NOT REMOVE
