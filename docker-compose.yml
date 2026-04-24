@@ -69,6 +69,7 @@ services:
       - ./claude-code-dashboard.json:/etc/grafana/dashboards/claude-code-dashboard.json:ro
       - ./codex-cli-dashboard.json:/etc/grafana/dashboards/codex-cli-dashboard.json:ro
       - ./warp-dashboard.json:/etc/grafana/dashboards/warp-dashboard.json:ro
+      - ./agent-overview-dashboard.json:/etc/grafana/dashboards/agent-overview-dashboard.json:ro
       - grafana_data:/var/lib/grafana
     ports:
       - "127.0.0.1:3000:3000"      # 🛑 Security Requirement - DO NOT REMOVE

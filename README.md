@@ -117,6 +117,7 @@ By default, the exporter reads Warp's local macOS state from `warp.sqlite` and `
 
 ### 3. Access Dashboards
 - **Grafana**: http://localhost:3000 (admin/admin)
+  - [Agent Overview](http://localhost:3000/d/agent-overview)
   - [Claude Code Observability](http://localhost:3000/d/claude-code-obs)
   - [Codex CLI Observability](http://localhost:3000/d/codex-cli-obs)
   - [Warp Enterprise Observability](http://localhost:3000/d/warp-enterprise-obs)
@@ -181,6 +182,8 @@ Full reference: [WARP_OBSERVABILITY.md](WARP_OBSERVABILITY.md)
 ## 📋 Dashboard Sections
 
 All dashboards follow the same layout for easy comparison:
+
+The Agent Overview dashboard compares Claude, Codex, and Warp in that fixed order across estimated cost, token usage, activity, and error rate.
 
 Warp now mirrors the Codex dashboard layout closely. Its cost and token panels filter local snapshot data by conversation update time using the temporary `1.5` cents-per-credit default unless overridden, while its final enterprise row shows the cached workspace context available from local Warp state.
 
