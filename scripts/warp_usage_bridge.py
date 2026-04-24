@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -31,6 +32,7 @@ ALLOWED_EVENTS = {
 class BridgeState:
     offset: int = 0
     inode: int | None = None
+    head_fingerprint: str | None = None
 
 
 @dataclass
@@ -121,17 +123,29 @@ def load_state(path: Path) -> BridgeState:
 
     offset = data.get("offset")
     inode = data.get("inode")
+    head_fingerprint = data.get("head_fingerprint")
     if not isinstance(offset, int):
         offset = 0
     if not isinstance(inode, int):
         inode = None
-    return BridgeState(offset=offset, inode=inode)
+    if not isinstance(head_fingerprint, str):
+        head_fingerprint = None
+    return BridgeState(offset=offset, inode=inode, head_fingerprint=head_fingerprint)
 
 
 def save_state(path: Path, state: BridgeState) -> None:
     ensure_parent(path)
-    payload = {"offset": state.offset, "inode": state.inode}
+    payload = {
+        "head_fingerprint": state.head_fingerprint,
+        "inode": state.inode,
+        "offset": state.offset,
+    }
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def fingerprint_file_head(path: Path, *, max_bytes: int = 4096) -> str:
+    with path.open("rb") as handle:
+        return hashlib.sha256(handle.read(max_bytes)).hexdigest()
 
 
 def split_records(chunk: bytes) -> list[tuple[int, str]]:
@@ -292,11 +306,22 @@ def process_available_records(config: BridgeConfig) -> ProcessResult:
 
     state = load_state(config.state_path)
     stat_result = config.source_path.stat()
+    head_fingerprint = fingerprint_file_head(config.source_path)
+    head_changed = (
+        state.offset > 0
+        and state.head_fingerprint is not None
+        and state.head_fingerprint != head_fingerprint
+    )
 
-    if state.inode != stat_result.st_ino or stat_result.st_size < state.offset:
-        state = BridgeState(offset=0, inode=stat_result.st_ino)
+    if state.inode != stat_result.st_ino or stat_result.st_size < state.offset or head_changed:
+        state = BridgeState(
+            offset=0,
+            inode=stat_result.st_ino,
+            head_fingerprint=head_fingerprint,
+        )
     else:
         state.inode = stat_result.st_ino
+        state.head_fingerprint = head_fingerprint
 
     with config.source_path.open("rb") as handle:
         handle.seek(state.offset)

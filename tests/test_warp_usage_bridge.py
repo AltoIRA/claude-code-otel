@@ -110,6 +110,25 @@ class WarpUsageBridgeTests(unittest.TestCase):
             ["exchange-1", "exchange-2"],
         )
 
+    def test_resets_offset_when_log_head_changes_with_same_inode(self) -> None:
+        self.source_path.write_text(self.fixture_text, encoding="utf-8")
+        first_result = warp_usage_bridge.process_available_records(self.config())
+
+        self.assertEqual(first_result.events_emitted, 6)
+
+        state = json.loads(self.state_path.read_text(encoding="utf-8"))
+        rotated_text = self.fixture_text.replace("conversation-1", "conversation-x", 1)
+        self.source_path.write_text(rotated_text, encoding="utf-8")
+        state["inode"] = self.source_path.stat().st_ino
+        self.state_path.write_text(json.dumps(state), encoding="utf-8")
+        self.output_path.unlink()
+
+        second_result = warp_usage_bridge.process_available_records(self.config())
+        events = self.read_events()
+
+        self.assertEqual(second_result.events_emitted, 6)
+        self.assertEqual(events[0]["conversation_id"], "conversation-x")
+
 
 if __name__ == "__main__":
     unittest.main()
