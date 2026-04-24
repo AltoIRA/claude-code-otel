@@ -93,6 +93,7 @@ class WarpEnterpriseExporterTests(unittest.TestCase):
 
         self.assertTrue(args.sqlite_path.endswith("warp.sqlite"))
         self.assertTrue(args.preferences_plist_path.endswith("dev.warp.Warp-Stable.plist"))
+        self.assertEqual(args.host, "127.0.0.1")
         self.assertEqual(args.max_conversations, 25)
         self.assertEqual(args.estimated_cents_per_credit, 1.5)
 

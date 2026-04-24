@@ -1,5 +1,5 @@
 # AI Coding Agent Observability Stack
-.PHONY: help up down logs restart clean validate-config status logs-collector logs-prometheus logs-grafana run-claude setup-codex run-codex setup-warp run-warp-usage-bridge run-warp-enterprise-exporter run-warp-bridges demo-metrics test
+.PHONY: help up up-warp down logs restart restart-warp clean validate-config status logs-collector logs-prometheus logs-grafana logs-warp-bridges run-claude setup-codex run-codex setup-warp run-warp-usage-bridge run-warp-enterprise-exporter run-warp-bridges run-warp-bridges-host demo-metrics test
 
 help: ## Show this help message
 	@echo "AI Coding Agent Observability Stack"
@@ -16,6 +16,12 @@ up: ## Start the observability stack
 	@echo "🔍 Prometheus: http://localhost:9090"
 	@echo "📄 Loki: http://localhost:3100"
 
+up-warp: ## Start the stack with the Dockerized Warp bridges
+	@echo "🚀 Starting AI coding agent observability stack with Warp bridges..."
+	docker compose --profile warp up -d --build
+	@echo "✅ Stack and Warp bridges started!"
+	@echo "📊 Grafana: http://localhost:3000 (admin/admin)"
+	@echo "📈 Warp exporter: internal Docker target warp-bridges:9498"
 
 down: ## Stop the observability stack
 	@echo "🛑 Stopping AI coding agent observability stack..."
@@ -26,6 +32,11 @@ restart: ## Restart the observability stack
 	@echo "🔄 Restarting AI coding agent observability stack..."
 	docker compose restart
 	@echo "✅ Stack restarted!"
+
+restart-warp: ## Rebuild and restart the Dockerized Warp bridges
+	@echo "🔄 Restarting Dockerized Warp bridges..."
+	docker compose --profile warp up -d --build warp-bridges prometheus
+	@echo "✅ Warp bridges restarted!"
 
 logs: ## Show logs from all services
 	docker compose logs -f
@@ -38,6 +49,9 @@ logs-prometheus: ## Show Prometheus logs
 
 logs-grafana: ## Show Grafana logs
 	docker compose logs -f grafana
+
+logs-warp-bridges: ## Show Dockerized Warp bridge/exporter logs
+	docker compose --profile warp logs -f warp-bridges
 
 test: ## Run unit tests
 	python3 -m unittest discover -s tests -v
@@ -56,6 +70,7 @@ validate-config: ## Validate all configuration files
 	@echo "✅ Validating configurations..."
 	@echo "📋 Checking docker compose.yml..."
 	docker compose config > /dev/null && echo "✅ docker compose.yml is valid"
+	docker compose --profile warp config > /dev/null && echo "✅ docker compose.yml Warp profile is valid"
 	@echo "📋 Checking collector-config.yaml..."
 	@if command -v otelcol-contrib >/dev/null 2>&1; then \
 		otelcol-contrib --config-validate --config=collector-config.yaml; \
@@ -122,26 +137,25 @@ setup-warp: ## Display Warp Enterprise telemetry setup instructions
 	@echo "🤖 Warp Enterprise Observability Setup"
 	@echo "======================================"
 	@echo ""
-	@echo "1. Start the stack:"
-	@echo "   make up"
+	@echo "1. Start the stack with Dockerized Warp bridges:"
+	@echo "   make up-warp"
 	@echo ""
-	@echo "2. Export host-side bridge paths:"
-	@echo '   export WARP_NETWORK_LOG_PATH="$$HOME/Library/Application Support/dev.warp.Warp-Stable/warp_network.log"'
-	@echo '   export WARP_USAGE_OUTPUT_PATH="$(PWD)/tmp/warp-usage-events.ndjson"'
-	@echo '   export WARP_USAGE_STATE_PATH="$(PWD)/tmp/warp-usage-bridge-state.json"'
-	@echo ""
-	@echo "3. Optional: override the default local file paths:"
-	@echo '   export WARP_SQLITE_PATH="$$HOME/Library/Group Containers/2BBY89MBSN.dev.warp/Library/Application Support/dev.warp.Warp-Stable/warp.sqlite"'
+	@echo "2. Optional: override the default Docker host mount paths:"
+	@echo '   export WARP_NETWORK_LOG_DIR="$$HOME/Library/Application Support/dev.warp.Warp-Stable"'
+	@echo '   export WARP_SQLITE_DIR="$$HOME/Library/Group Containers/2BBY89MBSN.dev.warp/Library/Application Support/dev.warp.Warp-Stable"'
 	@echo '   export WARP_PREFERENCES_PLIST_PATH="$$HOME/Library/Preferences/dev.warp.Warp-Stable.plist"'
 	@echo ""
-	@echo "   Optional estimated spend override:"
+	@echo "3. Optional: override the estimated spend guess:"
 	@echo '   export WARP_ESTIMATED_CENTS_PER_CREDIT="1.5"'
 	@echo ""
 	@echo "   The exporter defaults to 1.5 cents/credit as a temporary guess until the actual Enterprise rate is known."
 	@echo ""
-	@echo "4. Run the host-side bridges:"
-	@echo "   make run-warp-usage-bridge"
-	@echo "   make run-warp-enterprise-exporter"
+	@echo "4. For host-side debugging only, the equivalent paths are:"
+	@echo '   export WARP_NETWORK_LOG_PATH="$$HOME/Library/Application Support/dev.warp.Warp-Stable/warp_network.log"'
+	@echo '   export WARP_USAGE_OUTPUT_PATH="$(PWD)/tmp/warp-usage-events.ndjson"'
+	@echo '   export WARP_USAGE_STATE_PATH="$(PWD)/tmp/warp-usage-bridge-state.json"'
+	@echo '   export WARP_SQLITE_PATH="$$HOME/Library/Group Containers/2BBY89MBSN.dev.warp/Library/Application Support/dev.warp.Warp-Stable/warp.sqlite"'
+	@echo '   export WARP_PREFERENCES_PLIST_PATH="$$HOME/Library/Preferences/dev.warp.Warp-Stable.plist"'
 	@echo ""
 	@echo "5. Open the Warp dashboard:"
 	@echo "   http://localhost:3000/d/warp-enterprise-obs"
@@ -152,7 +166,10 @@ run-warp-usage-bridge: ## Tail warp_network.log and emit normalized NDJSON event
 run-warp-enterprise-exporter: ## Serve Prometheus metrics from local Warp state
 	@python3 scripts/warp_enterprise_exporter.py
 
-run-warp-bridges: ## Run the Warp usage bridge and enterprise exporter together
+run-warp-bridges: ## Run Dockerized Warp bridges in the foreground
+	@docker compose --profile warp up --build warp-bridges
+
+run-warp-bridges-host: ## Run the Warp usage bridge and enterprise exporter together on the host
 	@python3 scripts/warp_usage_bridge.py & \
 	BRIDGE_PID=$$!; \
 	trap 'kill $$BRIDGE_PID' EXIT INT TERM; \

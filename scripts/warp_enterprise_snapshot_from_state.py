@@ -12,6 +12,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 
 LOCAL_TIMEZONE = datetime.now().astimezone().tzinfo or timezone.utc
@@ -34,6 +35,10 @@ def default_sqlite_path() -> Path:
 
 def default_preferences_plist_path() -> Path:
     return Path.home() / "Library/Preferences/dev.warp.Warp-Stable.plist"
+
+
+def sqlite_readonly_uri(path: Path) -> str:
+    return f"file:{quote(str(path.expanduser()), safe='/')}?mode=ro"
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -423,7 +428,7 @@ def build_snapshot(
     request_limit_info = extract_request_limit_info(plist_payload)
     feature_models = extract_feature_models(plist_payload)
 
-    conn = sqlite3.connect(sqlite_path.expanduser())
+    conn = sqlite3.connect(sqlite_readonly_uri(sqlite_path), uri=True)
     conn.row_factory = sqlite3.Row
     try:
         workspace = fetch_selected_workspace(conn)

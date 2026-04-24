@@ -52,6 +52,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Port to bind the exporter HTTP server to.",
     )
     parser.add_argument(
+        "--host",
+        default=os.environ.get("WARP_EXPORTER_HOST", "127.0.0.1"),
+        help="Host interface to bind the exporter HTTP server to.",
+    )
+    parser.add_argument(
         "--timeout",
         type=float,
         default=float(os.environ.get("WARP_ENTERPRISE_SNAPSHOT_TIMEOUT", "10")),
@@ -630,10 +635,10 @@ def main(argv: list[str] | None = None) -> int:
         timeout=args.timeout,
         estimated_cents_per_credit=args.estimated_cents_per_credit,
     )
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(cache))
+    server = ThreadingHTTPServer((args.host, args.port), make_handler(cache))
 
     print(
-        f"Warp Enterprise exporter listening on http://127.0.0.1:{args.port}/metrics",
+        f"Warp Enterprise exporter listening on http://{args.host}:{args.port}/metrics",
         file=sys.stderr,
     )
     try:

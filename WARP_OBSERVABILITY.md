@@ -2,39 +2,46 @@
 
 > Feed local Warp usage activity and local enterprise context into the same Prometheus, Loki, and Grafana stack used by Claude Code and Codex.
 
-Warp does not emit native OTLP metrics for the local desktop client, so this repo uses two host-side helpers:
+Warp does not emit native OTLP metrics for the local desktop client, so this repo runs one Dockerized helper service named `warp-bridges`:
 
 1. `scripts/warp_usage_bridge.py` tails Warp's local `warp_network.log` and writes normalized NDJSON events for Loki.
-2. `scripts/warp_enterprise_exporter.py` reads Warp's local SQLite database and preferences plist directly, then exposes Prometheus metrics on `127.0.0.1:9498`.
+2. `scripts/warp_enterprise_exporter.py` reads Warp's local SQLite database and preferences plist directly, then exposes Prometheus metrics on `warp-bridges:9498` inside Docker.
+
+Both scripts run in the same container. The container mounts Warp state read-only and only writes normalized bridge output under this repo's `./tmp` directory.
 
 There is no external snapshot command path anymore. Base setup is local-state only.
 
 ## Quick Start
 
-### 1. Start the stack
+### 1. Start the stack with Warp bridges
 
 ```bash
-make up
+make up-warp
 ```
 
-### 2. Configure the host-side usage bridge
+This starts the normal observability stack plus the `warp-bridges` Compose profile.
+
+### 2. Override Docker host mount paths if needed
+
+The Dockerized setup uses these default macOS host paths:
 
 ```bash
-export WARP_NETWORK_LOG_PATH="$HOME/Library/Application Support/dev.warp.Warp-Stable/warp_network.log"
-export WARP_USAGE_OUTPUT_PATH="$PWD/tmp/warp-usage-events.ndjson"
-export WARP_USAGE_STATE_PATH="$PWD/tmp/warp-usage-bridge-state.json"
-```
-
-### 3. Configure the local-state exporter
-
-These are the default macOS paths used by the exporter:
-
-```bash
-export WARP_SQLITE_PATH="$HOME/Library/Group Containers/2BBY89MBSN.dev.warp/Library/Application Support/dev.warp.Warp-Stable/warp.sqlite"
+export WARP_NETWORK_LOG_DIR="$HOME/Library/Application Support/dev.warp.Warp-Stable"
+export WARP_SQLITE_DIR="$HOME/Library/Group Containers/2BBY89MBSN.dev.warp/Library/Application Support/dev.warp.Warp-Stable"
 export WARP_PREFERENCES_PLIST_PATH="$HOME/Library/Preferences/dev.warp.Warp-Stable.plist"
 ```
 
 If those paths already match your machine, you do not need to set them.
+
+Inside the container those host paths are mapped to:
+
+```bash
+WARP_NETWORK_LOG_PATH=/warp-network/warp_network.log
+WARP_SQLITE_PATH=/warp-state/warp.sqlite
+WARP_PREFERENCES_PLIST_PATH=/warp-preferences/dev.warp.Warp-Stable.plist
+```
+
+Docker Desktop must be allowed to share the mounted host directories. The default `/Users/...` paths are normally shared on macOS Docker Desktop.
 
 The exporter defaults estimated USD panels to `1.5` cents per credit. This is only a temporary guess until the actual Enterprise cents-per-credit value is confirmed.
 
@@ -44,17 +51,18 @@ Optional: override the guessed rate with your own manual cents-per-credit value:
 export WARP_ESTIMATED_CENTS_PER_CREDIT="1.5"
 ```
 
-Then run:
-
-```bash
-make run-warp-usage-bridge
-make run-warp-enterprise-exporter
-```
-
-Or run both together:
+For foreground logs during debugging:
 
 ```bash
 make run-warp-bridges
+```
+
+For host-side debugging without Docker, the old individual helpers remain available:
+
+```bash
+make run-warp-bridges-host
+make run-warp-usage-bridge
+make run-warp-enterprise-exporter
 ```
 
 ## What the Base Setup Provides
@@ -202,12 +210,10 @@ Estimated-spend metrics:
 From a clean machine:
 
 1. Install and open Warp at least once so `warp_network.log`, `warp.sqlite`, and the preferences plist exist locally.
-2. Run `make up`.
-3. Run `make run-warp-usage-bridge`.
-4. Run `make run-warp-enterprise-exporter`.
-5. Open `http://localhost:3000/d/warp-enterprise-obs`.
+2. Run `make up-warp`.
+3. Open `http://localhost:3000/d/warp-enterprise-obs`.
 
-If you know the real Enterprise cents-per-credit rate, set `WARP_ESTIMATED_CENTS_PER_CREDIT` before step 4. Otherwise the exporter uses the temporary `1.5` cents-per-credit guess.
+If you know the real Enterprise cents-per-credit rate, set `WARP_ESTIMATED_CENTS_PER_CREDIT` before step 2. Otherwise the exporter uses the temporary `1.5` cents-per-credit guess.
 
 ## Validation
 
@@ -226,8 +232,9 @@ docker compose config >/dev/null
 
 Finally, confirm:
 
-- `curl http://127.0.0.1:9498/metrics | rg '^warp_'`
+- Prometheus target `warp-enterprise-exporter` is up at `http://localhost:9090/targets`
 - `tail -f tmp/warp-usage-events.ndjson`
+- `docker compose --profile warp ps warp-bridges`
 - Grafana Warp dashboard: `http://localhost:3000/d/warp-enterprise-obs`
 
 ## Current Limits

@@ -106,14 +106,13 @@ endpoint = "http://localhost:4317"
 Then run `codex` normally. See `make setup-codex` for a reminder.
 
 #### Warp Enterprise
-Run `make setup-warp` for the required host-side bridge/exporter environment variables, then start:
+Run `make setup-warp` for the optional path overrides, then start the stack with the Dockerized Warp bridge/exporter container:
 
 ```bash
-make run-warp-usage-bridge
-make run-warp-enterprise-exporter
+make up-warp
 ```
 
-By default, the exporter reads Warp's local macOS state from `warp.sqlite` and `dev.warp.Warp-Stable.plist`. That base setup gives you real request, conversation, token, and tool metrics plus estimated spend using `WARP_ESTIMATED_CENTS_PER_CREDIT`, which currently defaults to a temporary `1.5` cents-per-credit guess until the actual Enterprise rate is known. It does not provide authoritative billed USD or purchased-credit tracking. See [WARP_OBSERVABILITY.md](WARP_OBSERVABILITY.md) for the exact data sources and limits.
+By default, the `warp-bridges` container mounts Warp's local macOS state read-only and writes normalized usage events into `./tmp` for the collector. That base setup gives you real request, conversation, token, and tool metrics plus estimated spend using `WARP_ESTIMATED_CENTS_PER_CREDIT`, which currently defaults to a temporary `1.5` cents-per-credit guess until the actual Enterprise rate is known. It does not provide authoritative billed USD or purchased-credit tracking. See [WARP_OBSERVABILITY.md](WARP_OBSERVABILITY.md) for the exact data sources and limits.
 
 ### 3. Access Dashboards
 - **Grafana**: http://localhost:3000 (admin/admin)
@@ -165,7 +164,7 @@ Current Codex builds emit `service_name="codex-app-server"`. Older releases emit
 
 Full reference: [WARP_OBSERVABILITY.md](WARP_OBSERVABILITY.md)
 
-**Metrics (Prometheus via host exporter):**
+**Metrics (Prometheus via Dockerized exporter):**
 - `warp_workspace_*` — Workspace request allocation, refresh-window state, and cached enterprise billing controls
 - `warp_member_*` — Current-user member request usage and request limits from local Warp state
 - `warp_model_*` — Workspace model credit/request multipliers
@@ -215,14 +214,17 @@ Formatted real-time log panels for API requests and errors.
 ```bash
 # Stack management
 make up                  # Start all services
+make up-warp             # Start all services plus the Dockerized Warp bridges
 make down                # Stop all services
 make restart             # Restart services
+make restart-warp        # Rebuild/restart the Dockerized Warp bridges
 make clean               # Clean up containers and volumes
 
 # Monitoring
 make logs                # View all service logs
 make logs-collector      # View collector logs
 make logs-grafana        # View Grafana logs
+make logs-warp-bridges   # View Warp bridge/exporter logs
 make status              # Show service status and URLs
 
 # Agent setup
@@ -231,9 +233,10 @@ make setup-codex         # Show Codex CLI config.toml setup instructions
 make setup-warp          # Show Warp Enterprise bridge/exporter setup instructions
 make run-claude          # Launch Claude Code with telemetry configured
 make run-codex           # Launch Codex CLI with telemetry configured
-make run-warp-usage-bridge        # Tail warp_network.log into normalized NDJSON
-make run-warp-enterprise-exporter # Serve Warp enterprise Prometheus metrics from local state
-make run-warp-bridges             # Run both Warp host-side processes together
+make run-warp-bridges             # Run Dockerized Warp bridges in the foreground
+make run-warp-bridges-host        # Run both Warp processes on the host for debugging
+make run-warp-usage-bridge        # Host-only debugging: tail warp_network.log into NDJSON
+make run-warp-enterprise-exporter # Host-only debugging: serve Warp Prometheus metrics
 
 # Validation
 make validate-config     # Validate docker-compose and collector config
@@ -246,13 +249,13 @@ make test                # Run unit tests
 
 The OpenTelemetry Collector (`collector-config.yaml`) accepts any OTLP data on ports 4317 (gRPC) and 4318 (HTTP). Both Claude Code and Codex telemetry flow through the same collector with separate pipelines for metrics, logs, and traces.
 
-Warp uses the same stack, but with a host-side usage bridge that writes normalized NDJSON for the collector's `filelog` receiver and a host-side exporter that serves Prometheus metrics directly.
+Warp uses the same stack, but with one Dockerized `warp-bridges` helper container. It mounts Warp's local macOS state read-only, writes normalized NDJSON for the collector's `filelog` receiver, and serves Prometheus metrics on `warp-bridges:9498`.
 
 ### Adding More Agents
 
 Any OTLP-compatible agent can send data to this stack. Point it at `localhost:4317` (gRPC) or `localhost:4318` (HTTP). Prometheus metrics appear automatically; logs appear in Loki queryable by `service_name`.
 
-Agents without native OTLP support can still fit this repo's shape by adding a small host-side bridge/exporter pair, which is how Warp Enterprise support is implemented here.
+Agents without native OTLP support can still fit this repo's shape by adding a small bridge/exporter helper, which is how Warp Enterprise support is implemented here.
 
 ### Alternative Stack
 
