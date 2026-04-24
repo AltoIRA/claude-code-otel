@@ -50,7 +50,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(count_over_time({service_name=\"codex_cli_rs\"} | event_name = \"codex.conversation_starts\" [$__range]))",
+          "expr": "sum(count_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | event_name = \"codex.conversation_starts\" [$__range]))",
           "legendFormat": "Sessions",
           "refId": "A"
         }
@@ -82,7 +82,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(sum_over_time({service_name=\"codex_cli_rs\"} | input_token_count != \"\" | unwrap input_token_count [$__range])) * 2.50 / 1000000 + sum(sum_over_time({service_name=\"codex_cli_rs\"} | cached_token_count != \"\" | unwrap cached_token_count [$__range])) * 0.25 / 1000000 + sum(sum_over_time({service_name=\"codex_cli_rs\"} | output_token_count != \"\" | unwrap output_token_count [$__range])) * 15.00 / 1000000",
+          "expr": "sum(sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | input_token_count != \"\" | unwrap input_token_count [$__range])) * 2.50 / 1000000 + sum(sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | cached_token_count != \"\" | unwrap cached_token_count [$__range])) * 0.25 / 1000000 + sum(sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | output_token_count != \"\" | unwrap output_token_count [$__range])) * 15.00 / 1000000",
           "legendFormat": "Est. Cost",
           "refId": "A"
         }
@@ -114,7 +114,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(sum_over_time({service_name=\"codex_cli_rs\"} | input_token_count != \"\" | unwrap input_token_count [$__range])) + sum(sum_over_time({service_name=\"codex_cli_rs\"} | output_token_count != \"\" | unwrap output_token_count [$__range]))",
+          "expr": "sum(sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | input_token_count != \"\" | unwrap input_token_count [$__range])) + sum(sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | output_token_count != \"\" | unwrap output_token_count [$__range]))",
           "legendFormat": "Tokens",
           "refId": "A"
         }
@@ -146,7 +146,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(count_over_time({service_name=\"codex_cli_rs\"} | event_name = \"codex.sse_event\" | event_kind = \"response.completed\" [$__range])) + sum(count_over_time({service_name=\"codex_cli_rs\"} | event_name = \"codex.websocket_event\" | event_kind = \"response.completed\" [$__range]))",
+          "expr": "sum(count_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | event_name = \"codex.sse_event\" | event_kind = \"response.completed\" [$__range])) + sum(count_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | event_name = \"codex.websocket_event\" | event_kind = \"response.completed\" [$__range]))",
           "legendFormat": "API Requests",
           "refId": "A"
         }
@@ -197,7 +197,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (model) (sum_over_time({service_name=\"codex_cli_rs\"} | input_token_count != \"\" | unwrap input_token_count [$__interval])) * 2.50 / 1000000 + sum by (model) (sum_over_time({service_name=\"codex_cli_rs\"} | cached_token_count != \"\" | unwrap cached_token_count [$__interval])) * 0.25 / 1000000 + sum by (model) (sum_over_time({service_name=\"codex_cli_rs\"} | output_token_count != \"\" | unwrap output_token_count [$__interval])) * 15.00 / 1000000",
+          "expr": "sum by (model) (sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | input_token_count != \"\" | unwrap input_token_count [$__interval])) * 2.50 / 1000000 + sum by (model) (sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | cached_token_count != \"\" | unwrap cached_token_count [$__interval])) * 0.25 / 1000000 + sum by (model) (sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | output_token_count != \"\" | unwrap output_token_count [$__interval])) * 15.00 / 1000000",
           "legendFormat": "{{model}}",
           "refId": "A"
         }
@@ -247,25 +247,25 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(sum_over_time({service_name=\"codex_cli_rs\"} | input_token_count != \"\" | unwrap input_token_count [$__interval]))",
+          "expr": "sum(sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | input_token_count != \"\" | unwrap input_token_count [$__interval]))",
           "legendFormat": "Input",
           "refId": "A"
         },
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(sum_over_time({service_name=\"codex_cli_rs\"} | output_token_count != \"\" | unwrap output_token_count [$__interval]))",
+          "expr": "sum(sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | output_token_count != \"\" | unwrap output_token_count [$__interval]))",
           "legendFormat": "Output",
           "refId": "B"
         },
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(sum_over_time({service_name=\"codex_cli_rs\"} | cached_token_count != \"\" | unwrap cached_token_count [$__interval]))",
+          "expr": "sum(sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | cached_token_count != \"\" | unwrap cached_token_count [$__interval]))",
           "legendFormat": "Cached",
           "refId": "C"
         },
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum(sum_over_time({service_name=\"codex_cli_rs\"} | reasoning_token_count != \"\" | unwrap reasoning_token_count [$__interval]))",
+          "expr": "sum(sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | reasoning_token_count != \"\" | unwrap reasoning_token_count [$__interval]))",
           "legendFormat": "Reasoning",
           "refId": "D"
         }
@@ -310,7 +310,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (model) (count_over_time({service_name=\"codex_cli_rs\"} | event_kind = \"response.completed\" [$__interval]))",
+          "expr": "sum by (model) (count_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | event_kind = \"response.completed\" [$__interval]))",
           "legendFormat": "{{model}}",
           "refId": "A"
         }
@@ -362,7 +362,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (event_name) (count_over_time({service_name=\"codex_cli_rs\"} | event_name != \"\" [$__interval]))",
+          "expr": "sum by (event_name) (count_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | event_name != \"\" [$__interval]))",
           "legendFormat": "{{event_name}}",
           "refId": "A"
         }
@@ -408,7 +408,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (event_kind) (count_over_time({service_name=\"codex_cli_rs\"} | event_kind != \"\" [$__interval]))",
+          "expr": "sum by (event_kind) (count_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | event_kind != \"\" [$__interval]))",
           "legendFormat": "{{event_kind}}",
           "refId": "A"
         }
@@ -459,7 +459,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "avg by (model) (avg_over_time({service_name=\"codex_cli_rs\"} | duration_ms != \"\" | event_name = \"codex.api_request\" or event_name = \"codex.websocket_request\" | unwrap duration_ms [$__interval]))",
+          "expr": "avg by (model) (avg_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | duration_ms != \"\" | event_name = \"codex.api_request\" or event_name = \"codex.websocket_request\" | unwrap duration_ms [$__interval]))",
           "legendFormat": "{{model}}",
           "refId": "A"
         }
@@ -504,7 +504,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (http_response_status_code) (count_over_time({service_name=\"codex_cli_rs\"} | http_response_status_code != \"\" | http_response_status_code != \"200\" [$__interval]))",
+          "expr": "sum by (http_response_status_code) (count_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | http_response_status_code != \"\" | http_response_status_code != \"200\" [$__interval]))",
           "legendFormat": "HTTP {{http_response_status_code}}",
           "refId": "A"
         }
@@ -555,7 +555,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (conversation_id) (count_over_time({service_name=\"codex_cli_rs\"} | event_kind = \"response.completed\" [$__interval]))",
+          "expr": "sum by (conversation_id) (count_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | event_kind = \"response.completed\" [$__interval]))",
           "legendFormat": "{{conversation_id}}",
           "refId": "A"
         }
@@ -600,7 +600,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "sum by (user_email) (sum_over_time({service_name=\"codex_cli_rs\"} | input_token_count != \"\" | unwrap input_token_count [$__interval]))",
+          "expr": "sum by (user_email) (sum_over_time({service_name=~\"codex_cli_rs|codex-app-server\"} | input_token_count != \"\" | unwrap input_token_count [$__interval]))",
           "legendFormat": "{{user_email}}",
           "refId": "A"
         }
@@ -631,7 +631,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "{service_name=\"codex_cli_rs\"} | event_kind = \"response.completed\" | line_format \"{{.event_timestamp}} [{{.model}}] in={{.input_token_count}} out={{.output_token_count}} cached={{.cached_token_count}} reasoning={{.reasoning_token_count}}\"",
+          "expr": "{service_name=~\"codex_cli_rs|codex-app-server\"} | event_kind = \"response.completed\" | line_format \"{{.event_timestamp}} [{{.model}}] in={{.input_token_count}} out={{.output_token_count}} cached={{.cached_token_count}} reasoning={{.reasoning_token_count}}\"",
           "refId": "A"
         }
       ],
@@ -655,7 +655,7 @@
       "targets": [
         {
           "datasource": {"type": "loki", "uid": "loki"},
-          "expr": "{service_name=\"codex_cli_rs\"} | http_response_status_code != \"\" | http_response_status_code != \"200\" | line_format \"{{.event_timestamp}} [{{.model}}] HTTP {{.http_response_status_code}} {{.duration_ms}}ms\"",
+          "expr": "{service_name=~\"codex_cli_rs|codex-app-server\"} | http_response_status_code != \"\" | http_response_status_code != \"200\" | line_format \"{{.event_timestamp}} [{{.model}}] HTTP {{.http_response_status_code}} {{.duration_ms}}ms\"",
           "refId": "A"
         }
       ],

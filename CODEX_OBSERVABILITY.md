@@ -116,7 +116,7 @@ Token counts are available on `response.completed` events as structured metadata
 
 | Attribute | Description |
 | --- | --- |
-| `service_name` | Always `codex_cli_rs` |
+| `service_name` | Current builds emit `codex-app-server`; older releases emitted `codex_cli_rs` |
 | `service_version` | Codex CLI version |
 | `app_version` | Codex CLI version |
 | `model` | Model used (e.g., `gpt-5.2`) |
@@ -178,13 +178,13 @@ The dashboard uses GPT-5.4 standard API pricing as defaults:
 | **API errors** | Dedicated `api_error` event with status code | Filter by `http_response_status_code` |
 | **API duration** | `duration_ms` on `api_request` events | `duration_ms` on `api_request`/`websocket_request` events |
 | **Configuration** | Environment variables | `~/.codex/config.toml` |
-| **Service name** | `claude-code` | `codex_cli_rs` |
+| **Service name** | `claude-code` | `codex-app-server` (current), `codex_cli_rs` (legacy) |
 
 ## Service Information
 
 All telemetry is exported with:
 
-* **Service Name**: `codex_cli_rs`
+* **Service Name**: `codex-app-server` on current builds, `codex_cli_rs` on legacy builds
 * **Telemetry SDK**: `opentelemetry` (Rust)
 * **Scope Name**: `codex_otel.log_only`
 
@@ -194,16 +194,16 @@ All telemetry is exported with:
 
 ```logql
 # All Codex events
-{service_name="codex_cli_rs"}
+{service_name=~"codex_cli_rs|codex-app-server"}
 
 # API completions with token counts
-{service_name="codex_cli_rs"} | event_kind = "response.completed"
+{service_name=~"codex_cli_rs|codex-app-server"} | event_kind = "response.completed"
 
 # Token usage (unwrap for numeric aggregation)
-sum(sum_over_time({service_name="codex_cli_rs"} | input_token_count != "" | unwrap input_token_count [1h]))
+sum(sum_over_time({service_name=~"codex_cli_rs|codex-app-server"} | input_token_count != "" | unwrap input_token_count [1h]))
 
 # Error events
-{service_name="codex_cli_rs"} | http_response_status_code != "" | http_response_status_code != "200"
+{service_name=~"codex_cli_rs|codex-app-server"} | http_response_status_code != "" | http_response_status_code != "200"
 ```
 
 ### Prometheus
