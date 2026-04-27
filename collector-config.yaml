@@ -5,6 +5,13 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+  filelog/warp:
+    include:
+      - /var/log/warp/warp-usage-events.ndjson
+    start_at: beginning
+    include_file_path: true
+    operators:
+      - type: json_parser
 
 processors:
   # Add resource attributes for better analysis
@@ -12,6 +19,11 @@ processors:
     attributes:
       - key: environment
         value: "production"
+        action: upsert
+  resource/warp:
+    attributes:
+      - key: service.name
+        value: "warp"
         action: upsert
 
 exporters:
@@ -39,6 +51,11 @@ service:
     logs:
       receivers: [otlp]
       processors: [resource]
+      exporters: [debug, otlphttp]
+
+    logs/warp:
+      receivers: [filelog/warp]
+      processors: [resource, resource/warp]
       exporters: [debug, otlphttp]
 
     traces:

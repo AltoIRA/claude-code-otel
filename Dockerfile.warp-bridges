@@ -1,0 +1,7 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+COPY scripts/ ./scripts/
+
+ENTRYPOINT ["sh", "./scripts/run_warp_bridges_container.sh"]

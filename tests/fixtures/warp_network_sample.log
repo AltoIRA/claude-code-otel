@@ -1,0 +1,167 @@
+[2026-04-23 17:47:37,289]: Request { method: POST, url: Url { scheme: "https", cannot_be_a_base: false, username: "", password: None, host: Some(Domain("warpianwzlfqdq.dataplane.rudderstack.com")), port: None, path: "/v1/batch", query: None, fragment: None }, headers: {"x-warp-client-id": "warp-app", "content-type": "application/json"} }
+Body {
+  "batch": [
+    {
+      "type": "track",
+      "userId": "user-1",
+      "anonymousId": "anon-1",
+      "event": "AgentMode.CreatedAIBlock",
+      "properties": {
+        "client_id": "warp-app",
+        "payload": {
+          "cancelled": false,
+          "client_exchange_id": "exchange-1",
+          "conversation_id": "conversation-1",
+          "server_output_id": "output-1",
+          "time_to_first_token_ms": 239,
+          "time_to_last_token_ms": 1334,
+          "was_user_facing_error": false
+        },
+        "release_mode": "stable_release"
+      },
+      "originalTimestamp": "2026-04-24T00:47:08.869978Z",
+      "integrations": {
+        "Amplitude": {
+          "session_id": 1776988641
+        }
+      }
+    },
+    {
+      "type": "track",
+      "userId": "user-1",
+      "anonymousId": "anon-1",
+      "event": "AIAutonomy.AutoexecutedRequestedCommand",
+      "properties": {
+        "client_id": "warp-app",
+        "payload": {
+          "reason": "RunToCompletion"
+        },
+        "release_mode": "stable_release"
+      },
+      "originalTimestamp": "2026-04-24T00:47:16.047903Z",
+      "integrations": {
+        "Amplitude": {
+          "session_id": 1776988641
+        }
+      }
+    },
+    {
+      "type": "track",
+      "userId": "user-1",
+      "anonymousId": "anon-1",
+      "event": "AgentMode.Code.SuggestedEditReceived",
+      "properties": {
+        "client_id": "warp-app",
+        "payload": {
+          "conversation_id": "conversation-1",
+          "model_id": "claude-4-7-opus-max"
+        },
+        "release_mode": "stable_release"
+      },
+      "originalTimestamp": "2026-04-24T00:47:36.930267Z",
+      "integrations": {
+        "Amplitude": {
+          "session_id": 1776988641
+        }
+      }
+    },
+    {
+      "type": "track",
+      "userId": "user-1",
+      "anonymousId": "anon-1",
+      "event": "AgentMode.Code.SuggestedEditResolved",
+      "properties": {
+        "client_id": "warp-app",
+        "payload": {
+          "conversation_id": "conversation-1",
+          "model_id": "claude-4-7-opus-max"
+        },
+        "release_mode": "stable_release"
+      },
+      "originalTimestamp": "2026-04-24T00:47:37.930267Z",
+      "integrations": {
+        "Amplitude": {
+          "session_id": 1776988641
+        }
+      }
+    },
+    {
+      "type": "track",
+      "userId": "user-1",
+      "anonymousId": "anon-1",
+      "event": "Block Creation",
+      "properties": {
+        "client_id": "warp-app",
+        "payload": {
+          "is_in_agent_view": true,
+          "terminal_session_id": 177698983029443
+        },
+        "release_mode": "stable_release"
+      },
+      "originalTimestamp": "2026-04-24T00:47:10.928239Z",
+      "integrations": {
+        "Amplitude": {
+          "session_id": 1776988641
+        }
+      }
+    },
+    {
+      "type": "track",
+      "userId": "user-1",
+      "anonymousId": "anon-1",
+      "event": "Block Creation",
+      "properties": {
+        "client_id": "warp-app",
+        "payload": {
+          "is_in_agent_view": false,
+          "terminal_session_id": 999
+        },
+        "release_mode": "stable_release"
+      },
+      "originalTimestamp": "2026-04-24T00:47:11.928239Z",
+      "integrations": {
+        "Amplitude": {
+          "session_id": 1776988641
+        }
+      }
+    }
+  ]
+}
+[2026-04-23 17:47:37,400]: Response { url: "https://warpianwzlfqdq.dataplane.rudderstack.com/v1/batch", status: 200, headers: {"content-type": "text/plain"} }
+[2026-04-23 17:53:17,276]: Request { method: POST, url: Url { scheme: "https", cannot_be_a_base: false, username: "", password: None, host: Some(Domain("app.warp.dev")), port: None, path: "/graphql/v2", query: Some("op=GetRequestLimitInfo"), fragment: None }, headers: {"content-type": "application/json"} }
+Body {
+  "query": "query GetRequestLimitInfo { viewer { id } }",
+  "variables": {}
+}
+[2026-04-23 17:53:17,350]: Response { url: "https://app.warp.dev/graphql/v2?op=GetRequestLimitInfo", status: 200, headers: {"content-type": "application/json"} }
+[2026-04-23 17:55:37,289]: Request { method: POST, url: Url { scheme: "https", cannot_be_a_base: false, username: "", password: None, host: Some(Domain("warpianwzlfqdq.dataplane.rudderstack.com")), port: None, path: "/v1/batch", query: None, fragment: None }, headers: {"x-warp-client-id": "warp-app", "content-type": "application/json"} }
+Body {
+  "batch": [
+    {
+      "type": "track",
+      "userId": "user-1",
+      "anonymousId": "anon-1",
+      "event": "AgentMode.CreatedAIBlock",
+      "properties": {
+        "client_id": "warp-app",
+        "payload": {
+          "cancelled": false,
+          "client_exchange_id": "exchange-2",
+          "conversation_id": "conversation-2",
+          "server_output_id": "output-2",
+          "time_to_first_token_ms": 100,
+          "time_to_last_token_ms": 2000,
+          "was_user_facing_error": true
+        },
+        "release_mode": "stable_release"
+      },
+      "originalTimestamp": "2026-04-24T00:55:08.869978Z",
+      "integrations": {
+        "Amplitude": {
+          "session_id": 1776988642
+        }
+      }
+    }
+  ]
+}
+[2026-04-23 17:55:37,400]: Response { url: "https://warpianwzlfqdq.dataplane.rudderstack.com/v1/batch", status: 200, headers: {"content-type": "text/plain"} }
